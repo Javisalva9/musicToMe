@@ -1,31 +1,42 @@
 import time
 import urllib.request
+from urllib.request import Request
 import urllib.parse
 import webbrowser
 #from urllib import urlopen as urlOpen
 from bs4 import BeautifulSoup as bs
-import mutagen
-from mutagen.easyid3 import EasyID3
+# import mutagen
+# from mutagen.easyid3 import EasyID3
+
+import sys, deezer
+
 
 import os
 
 #Down
-url = "http://www.deezer.com/playlist/1176643681"
+# url = "http://www.deezer.com/playlist/1176643681"
+playId = 1176643681
 #awwesome
 #url = "http://www.deezer.com/playlist/2114429244"
 
-soup = bs(urllib.request.urlopen(url), "html.parser")
+# soup = bs(urllib.request.urlopen(url), "html.parser")
+client = deezer.Client()
+song_list = client.get_playlist(playId).tracks
+
 
 successSongs = []
 failedSongs = []
 failedSongsUrls = []
 
-for index, link in enumerate(soup.find_all(itemprop="track")):
+for index, song in enumerate(song_list):
 
     #print("ITEMPROP",soup.find_all(itemprop="track"))
-    title = soup.find_all("span" , itemprop="name")[index].get_text()
+    # title = soup.find_all("span" , itemprop="name")[index].get_text()
+    title = song.title
     # title = title.encode("utf-8")
-    artist = soup.find_all(itemprop="byArtist")[index].get_text()
+    # artist = soup.find_all(itemprop="byArtist")[index].get_text()
+
+    artist = song.get_artist().name
     # artist = artist.encode("utf-8")
     print (index, "title", title , "artist", artist)
 
@@ -42,8 +53,11 @@ for index, link in enumerate(soup.find_all(itemprop="track")):
 
     #Adds that video to the api for youtubeinmp3. direct dowload that song with title change as our wish
     #we set a sleep to avoid overloading web
-    urlDownload = 'https://www.youtubeinmp3.com/fetch/?video=' + idVideo + '&title=' + urllib.parse.quote(artist) + urllib.parse.quote(" - ") + urllib.parse.quote(title)
-    responseAPI = urllib.request.urlopen(urlDownload).geturl()
+    urlDownload = 'https://www.convertmp3.io/fetch/?video=' + idVideo + '&title=' + urllib.parse.quote(artist) + urllib.parse.quote(" - ") + urllib.parse.quote(title)
+    req = Request(urlDownload, headers={'User-Agent': 'Mozilla/5.0'})
+
+    print(urlDownload)
+    responseAPI = urllib.request.urlopen(req).geturl()
     #print (urlDownload)
     #print (responseAPI)
     # save fails for retry
@@ -74,7 +88,8 @@ while ((len(failedSongsUrls) != 0) and (retries < 3)):
     time.sleep(60)
     retries += 1
     for index, retrySongUrl in enumerate(failedSongsUrls):
-        responseAPI = urllib.request.urlopen(retrySongUrl).geturl()
+        req = Request(retrySongUrl, headers={'User-Agent': 'Mozilla/5.0'})
+        responseAPI = urllib.request.urlopen(req).geturl()
         #print (retrySongUrl)
         #print (responseAPI)
         # save fails for retry
@@ -102,7 +117,8 @@ print ("PORCENT " + str(porcent))
 print ("LAST CHANCE + MANUAL :(")
 if (len(failedSongsUrls) != 0):
     for index, retrySongUrl in  enumerate(failedSongsUrls):
-        responseAPI = urllib.request.urlopen(retrySongUrl).geturl()
+        req = Request(retrySongUrl, headers={'User-Agent': 'Mozilla/5.0'})
+        responseAPI = urllib.request.urlopen(req).geturl()
         if "get/?" in responseAPI:
             successSongs.append(failedSongs[index])
             failedSongs.pop(index)
